@@ -20,6 +20,10 @@ export async function verifyAdminUser(body) {
 
   try {
     const userRes = await getUser({ id: targetUserId }, null, null, requestId);
+    console.log('getUser response:', userRes);
+    console.log('userRes.error:', userRes.error);
+    console.log('userRes.errorData:', userRes.errorData);
+
     if (userRes.error) {
       return userRes.errorData;
     }

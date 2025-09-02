@@ -240,8 +240,13 @@ export const TABLE_NAMES = {
     otp: 'otp',
     lens_selection: 'lens_selection',
     sme_selection: 'sme_selection',
-    user_selection: 'user_selection'
+    user_selection: 'user_selection',
+    feedback: 'feedback',
+    booking_availability: 'booking_availability',
+    // push notifications
+    push_notification_tokens: 'push_notification_tokens'
 }
+
 
 // !need to complete this
 export const VALID_USER_SEARCH_FILTERS = [

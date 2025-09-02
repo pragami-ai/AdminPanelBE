@@ -34,6 +34,10 @@ export const userSchema = {
     consented_at: {
         type: DataTypes.DATE
     },
+    verified_by_admin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     deleted_at: {
         type: DataTypes.DATE
     },
