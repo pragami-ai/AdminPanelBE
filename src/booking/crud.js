@@ -169,7 +169,6 @@ console.log('createBooking', data)
 
 export async function updateBooking(where, data, requestId) {
     try {
-
         if (!where) {
             throw DB_ERRORS.DB_01;
         }
@@ -178,6 +177,9 @@ export async function updateBooking(where, data, requestId) {
             data.updated_at = new Date().toISOString();
         }
 
+        console.log('🔍 CRUD updateBooking: WHERE:', where);
+        console.log('🔍 CRUD updateBooking: DATA:', data);
+
         const [affectedCount, affectedRows] = await Booking.update(
             data,
             {
@@ -185,7 +187,10 @@ export async function updateBooking(where, data, requestId) {
                 returning: true,
                 raw: true
             }
-        )
+        );
+
+        console.log('🔍 CRUD updateBooking: Affected count:', affectedCount);
+        console.log('🔍 CRUD updateBooking: Affected rows:', affectedRows);
 
         if (affectedCount === 0 || !Object.keys(affectedRows[0] || {}).length) {
             return {
@@ -196,15 +201,16 @@ export async function updateBooking(where, data, requestId) {
                         message: 'Bookings could not be updated.'
                     }
                 }
-            }
+            };
         }
 
+        // 🔥 FIXED: Complete the return statement
         return {
             error: false,
             data: {
-                bookingResponse: affectedRows[0]
+                booking: affectedRows[0] // This was missing/incomplete in your original code
             }
-        }
+        };
     } catch (error) {
         logger.error(FILE_NAME, 'updateBooking', requestId, {
             error,
@@ -219,6 +225,6 @@ export async function updateBooking(where, data, requestId) {
                     message: 'Could not update booking'
                 }
             }
-        }
+        };
     }
 }

@@ -60,7 +60,7 @@ import {ADMIN_API_PATHS, API_PATHS} from './helper/constants.js';
 import { getAllUsers } from './user/getAllUsers.js';
 import {adminCreateUser } from './user/createUser.js';
 import {adminDeleteUser } from './user/deleteUser.js';
-import {adminApproveUser } from './user/approveUser.js';
+import {verifyAdminUser } from './user/approveUser.js';
 import {adminGetUserDetails } from './user/getUserDetails.js';
 import {adminEditUser } from './user/editUser.js';
 
@@ -417,7 +417,7 @@ export const app = async (event, context, requestId) => {
          * ADMIN USER MANAGEMENT ROUTES
          */
         case ADMIN_API_PATHS.APPROVE_USER: {
-            return await adminApproveUser(body); 
+            return await verifyAdminUser(body); 
         }
         case ADMIN_API_PATHS.CREATE_USER: {
             return await adminCreateUser(body);

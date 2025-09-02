@@ -19,7 +19,7 @@ export const ADMIN_API_PATHS = {
     GET_ALL_USERS: '/admin/get-all-users',
     GET_USER_DETAILS: '/admin/user/details',    
     EDIT_USER: '/admin/user/edit',              
-    APPROVE_USER: '/admin/user/approve',  
+    APPROVE_USER: 'admin/verify-user',  
     DELETE_USER: '/admin/user',
 
     HEALTH: '/admin/health',
@@ -270,3 +270,10 @@ export const FORM_STATUSES = {
     PAST: 'past',
     ALL: 'all'
 }
+
+export const MESSAGE_TYPES = {
+    BOOKING_CREATED: 'BOOKING_CREATED',
+    BOOKING_CANCELLED: 'BOOKING_CANCELLED',
+    BOOKING_UPDATED: 'BOOKING_UPDATED',
+    ACCOUNT_VERIFIED: 'ACCOUNT_VERIFIED'
+};

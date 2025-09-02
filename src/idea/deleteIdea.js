@@ -49,7 +49,7 @@ export async function adminDeleteIdea(body) {
             });
 
             for (const form of forms) {
-                await FormResponse.destroy({
+                await FormResponses.destroy({
                     where: { form_id: form.id },
                     transaction
                 });

@@ -18,6 +18,7 @@ import {otpSchema} from "./models/otp.js";
 import { lensSelectionSchema } from './models/lens_selection.js';
 import { smeSelectionSchema } from './models/sme_selection.js';
 import { userSelectionSchema } from './models/user_selection.js';
+import { pushNotificationTokenSchema } from './models/push_notification_tokens.js';
 config();
 
 // Environment-based SSL configuration
@@ -183,6 +184,19 @@ export const UserSelection = sequelize.isDefined('UserSelection')
         }
     );
 
+export const PushNotificationToken = sequelize.isDefined('PushNotificationToken')
+    ? sequelize.models.PushNotificationToken
+    : sequelize.define(
+        'PushNotificationToken',
+        pushNotificationTokenSchema,
+        {
+            tableName: TABLE_NAMES.push_notification_tokens,
+            timestamps: true,
+            createdAt: 'created_at',
+            updatedAt: 'updated_at'
+        }
+    );
+
 User.hasOne(UserInformation, {
     foreignKey: 'user_id',
     as: 'user_information',
@@ -300,6 +314,16 @@ UserSelection.belongsTo(User, {
 Form.hasMany(FormResponses, {
     foreignKey: 'form_id',
     as: 'form_responses'  // Give it an alias
+});
+
+User.hasMany(PushNotificationToken, {
+    foreignKey: 'user_id',
+    as: 'push_tokens'
+});
+
+PushNotificationToken.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
 });
 
 export let cache = null;

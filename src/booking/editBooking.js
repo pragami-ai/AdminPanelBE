@@ -2,17 +2,23 @@ import { config } from 'dotenv';
 import { getBooking, updateBooking } from '../booking/crud.js';
 import { getUser } from '../user/crud.js';
 import { logger } from '../logger/logger.js';
+import { BOOKING_STATUSES } from '../helper/constants.js';
 
 config();
 const FILE_NAME = 'admin/booking/editBooking.js';
 
 export async function adminEditBooking(body) {
+    console.log('🔍 adminEditBooking: ENTRY - body:', body);
+    
     const { bookingId, creator_id, participant_id, start_time, end_time, requestId } = body;
     delete body.requestId;
     
     try {
+        console.log('🔍 adminEditBooking: Processing booking ID:', bookingId);
+        
         // Validate required fields
         if (!bookingId) {
+            console.log('❌ adminEditBooking: Missing bookingId');
             return {
                 statusCode: 400,
                 body: {
@@ -22,6 +28,7 @@ export async function adminEditBooking(body) {
         }
 
         // Check if booking exists
+        console.log('🔍 adminEditBooking: Fetching existing booking...');
         const existingBookingResponse = await getBooking(
             { id: bookingId },
             ['id', 'creator_id', 'participant_id', 'start_time', 'end_time', 'status'],
@@ -29,151 +36,91 @@ export async function adminEditBooking(body) {
         );
 
         if (existingBookingResponse.error) {
+            console.log('❌ adminEditBooking: Booking not found:', existingBookingResponse);
             return existingBookingResponse.errorData;
         }
 
         const existingBooking = existingBookingResponse.data.booking;
-
-        // Prepare update data
+        console.log('🔍 adminEditBooking: Existing booking:', existingBooking);
+        
         const updateData = {};
 
-        // Validate and add creator_id if provided
-        if (creator_id !== undefined) {
-            if (creator_id === participant_id) {
-                return {
-                    statusCode: 400,
-                    body: {
-                        message: 'Creator and participant must be different users'
-                    }
-                };
-            }
-
-            // Verify creator exists
-            const creatorCheck = await getUser({ id: creator_id }, null, ['id'], requestId);
-            if (creatorCheck.error) {
-                return {
-                    statusCode: 404,
-                    body: {
-                        message: 'Creator not found'
-                    }
-                };
-            }
-            updateData.creator_id = creator_id;
-        }
-
-        // Validate and add participant_id if provided
-        if (participant_id !== undefined) {
-            if (creator_id === participant_id) {
-                return {
-                    statusCode: 400,
-                    body: {
-                        message: 'Creator and participant must be different users'
-                    }
-                };
-            }
-
-            // Verify participant exists
-            const participantCheck = await getUser({ id: participant_id }, null, ['id'], requestId);
-            if (participantCheck.error) {
-                return {
-                    statusCode: 404,
-                    body: {
-                        message: 'Participant not found'
-                    }
-                };
-            }
-            updateData.participant_id = participant_id;
-        }
-
-        // Add optional time fields if provided
+        // Add time fields if provided
         if (start_time !== undefined) {
             updateData.start_time = new Date(start_time);
+            console.log('🔍 adminEditBooking: Adding start_time:', updateData.start_time);
         }
         if (end_time !== undefined) {
             updateData.end_time = new Date(end_time);
+            console.log('🔍 adminEditBooking: Adding end_time:', updateData.end_time);
         }
 
-        // Get current values for validation (use new values if provided, otherwise existing)
-        const currentCreatorId = updateData.creator_id || existingBooking.creator_id;
-        const currentParticipantId = updateData.participant_id || existingBooking.participant_id;
+        // Get current values for validation
         const currentStartTime = updateData.start_time || new Date(existingBooking.start_time);
         const currentEndTime = updateData.end_time || new Date(existingBooking.end_time);
 
-        // Validate that creator and participant are different (final check)
-        if (currentCreatorId === currentParticipantId) {
-            return {
-                statusCode: 400,
-                body: {
-                    message: 'Creator and participant must be different users'
-                }
-            };
+        console.log('🔍 adminEditBooking: Current times:', {
+            currentStartTime: currentStartTime.toISOString(),
+            currentEndTime: currentEndTime.toISOString()
+        });
+
+        // AUTO-CALCULATE STATUS BASED ON TIMING
+        const now = new Date();
+        let autoStatus;
+        
+        if (currentEndTime <= now) {
+            autoStatus = BOOKING_STATUSES.COMPLETED; // 'completed'
+        } else if (currentStartTime <= now && currentEndTime > now) {
+            autoStatus = BOOKING_STATUSES.ONGOING; // 'ongoing'  
+        } else if (currentStartTime > now) {
+            autoStatus = BOOKING_STATUSES.SCHEDULED; // 'scheduled'
         }
 
-        // Validate time logic
-        if (currentStartTime >= currentEndTime) {
-            return {
-                statusCode: 400,
-                body: {
-                    message: 'End time must be after start time'
-                }
-            };
-        }
+        console.log('🔍 adminEditBooking: Status calculation:', {
+            now: now.toISOString(),
+            currentStartTime: currentStartTime.toISOString(),
+            currentEndTime: currentEndTime.toISOString(),
+            autoStatus,
+            BOOKING_STATUSES
+        });
 
-        // Validate start time is not in the past (optional - remove if you want to allow past bookings)
-        // if (currentStartTime < new Date()) {
-        //     return {
-        //         statusCode: 400,
-        //         body: {
-        //             message: 'Start time cannot be in the past'
-        //         }
-        //     };
-        // }
+        // Add auto-calculated status to update data
+        updateData.status = autoStatus;
+        console.log('🔍 adminEditBooking: Final updateData:', updateData);
 
-        // Update the booking
+        // Update the booking in database
+        console.log('🔍 adminEditBooking: Calling updateBooking...');
         const updateResponse = await updateBooking(
             { id: bookingId },
             updateData,
             requestId
         );
 
+        console.log('🔍 adminEditBooking: Update response:', updateResponse);
+
         if (updateResponse.error) {
+            console.log('❌ adminEditBooking: Update failed:', updateResponse);
             return updateResponse.errorData;
         }
 
-        logger.info(FILE_NAME, 'adminEditBooking', requestId, {
-            bookingId,
-            updatedFields: Object.keys(updateData),
-            changes: {
-                creator_id: creator_id !== undefined ? { from: existingBooking.creator_id, to: creator_id } : 'unchanged',
-                participant_id: participant_id !== undefined ? { from: existingBooking.participant_id, to: participant_id } : 'unchanged',
-                start_time: start_time !== undefined ? { from: existingBooking.start_time, to: start_time } : 'unchanged',
-                end_time: end_time !== undefined ? { from: existingBooking.end_time, to: end_time } : 'unchanged'
-            },
-            message: 'Booking updated successfully'
-        });
+        console.log('✅ adminEditBooking: SUCCESS - booking updated');
 
         return {
             statusCode: 200,
             body: {
                 message: 'Booking updated successfully',
                 booking: updateResponse.data.booking,
-                updatedFields: Object.keys(updateData)
+                autoCalculatedStatus: autoStatus,
+                debug: {
+                    updateData,
+                    originalStatus: existingBooking.status,
+                    newStatus: autoStatus
+                }
             }
         };
 
     } catch (error) {
-        logger.error(FILE_NAME, 'adminEditBooking', requestId, {
-            error,
-            errorMessage: error.message,
-            errorStack: error.stack,
-            bookingId,
-            requestedChanges: {
-                creator_id,
-                participant_id,
-                start_time,
-                end_time
-            }
-        });
+        console.error('❌ adminEditBooking: EXCEPTION:', error);
         return {
             statusCode: 500,
             body: {
