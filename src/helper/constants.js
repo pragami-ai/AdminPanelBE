@@ -19,7 +19,7 @@ export const ADMIN_API_PATHS = {
     GET_ALL_USERS: '/admin/get-all-users',
     GET_USER_DETAILS: '/admin/user/details',    
     EDIT_USER: '/admin/user/edit',              
-    APPROVE_USER: 'admin/verify-user',  
+    APPROVE_USER: '/admin/verify-user',  
     DELETE_USER: '/admin/user',
 
     HEALTH: '/admin/health',
@@ -41,6 +41,8 @@ export const ADMIN_API_PATHS = {
     EDIT_FORM: '/admin/forms/edit',
     GET_FORM_RESPONSES: '/admin/forms/responses',
     DELETE_FORM: '/admin/forms/delete',
+
+    COST_TRACKING: '/admin/cost-tracking'
 
 
 }

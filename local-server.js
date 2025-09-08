@@ -472,6 +472,19 @@ expressApp.post(ADMIN_API_PATHS.EDIT_BOOKING, async (req, res) => {
     res.status(result.statusCode || 200).json(result);
 });
 
+expressApp.post(ADMIN_API_PATHS.COST_TRACKING, async (req, res) => {
+    console.log('🔍 Cost Tracking route hit');
+    console.log('📊 Request body:', req.body);
+    
+    const result = await lambdaHandler({
+        body: JSON.stringify(req.body),
+        rawPath: ADMIN_API_PATHS.COST_TRACKING,
+        headers: req.headers,
+        httpMethod: 'POST'
+    });
+    res.status(result.statusCode || 200).json(result);
+});
+
 
 const PORT = process.env.PORT || 3001;
 expressApp.listen(PORT, () => {

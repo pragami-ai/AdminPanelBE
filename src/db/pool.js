@@ -19,6 +19,7 @@ import { lensSelectionSchema } from './models/lens_selection.js';
 import { smeSelectionSchema } from './models/sme_selection.js';
 import { userSelectionSchema } from './models/user_selection.js';
 import { pushNotificationTokenSchema } from './models/push_notification_tokens.js';
+import { bookingAvailabilitySchema } from './models/booking_availability.js';
 config();
 
 // Environment-based SSL configuration
@@ -196,6 +197,18 @@ export const PushNotificationToken = sequelize.isDefined('PushNotificationToken'
             updatedAt: 'updated_at'
         }
     );
+export const BookingAvailability = sequelize.isDefined('BookingAvailability')
+    ? sequelize.models.BookingAvailability
+    : sequelize.define(
+        'BookingAvailability',
+        bookingAvailabilitySchema,
+        {
+            tableName: TABLE_NAMES.booking_availability,
+            timestamps: true,
+            createdAt: 'created_at',
+            updatedAt: 'updated_at'
+        }
+    );
 
 User.hasOne(UserInformation, {
     foreignKey: 'user_id',
@@ -322,6 +335,17 @@ User.hasMany(PushNotificationToken, {
 });
 
 PushNotificationToken.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+});
+
+// BookingAvailability associations
+User.hasMany(BookingAvailability, {
+    foreignKey: 'user_id',
+    as: 'availabilities'
+});
+
+BookingAvailability.belongsTo(User, {
     foreignKey: 'user_id',
     as: 'user'
 });

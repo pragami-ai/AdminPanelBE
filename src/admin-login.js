@@ -1,18 +1,14 @@
+// src/admin-login.js - Updated to use database
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
+import { getUser } from './user/crud.js'; // Import your existing getUser function
 import { logger } from './logger/logger.js';
 import { loginValidation } from './joi/validation.js';
+import { UserInformation } from './db/pool.js';
 
 config();
-
 const FILE_NAME = 'admin-login.js';
-
-// Admin credentials - in production, store in database
-const ADMIN_CREDENTIALS = {
-    email: process.env.ADMIN_EMAIL || 'admin@outlaw.com',
-    password: process.env.ADMIN_PASSWORD_HASH // Pre-hashed password
-};
 
 export async function adminLogin(body) {
     const requestId = body.requestId;
@@ -32,8 +28,23 @@ export async function adminLogin(body) {
 
         const { email, password } = body;
 
-        // Check if email matches admin email
-        if (email !== ADMIN_CREDENTIALS.email) {
+        // Query database for admin user (simplified)
+        const userDataFromDB = await getUser(
+            {
+                email,
+                persona_type: 'admin' // Only look for admin users
+            },
+            [{
+                model: UserInformation,
+                as: 'user_information',
+                required: false
+            }],
+            ['id', 'email', 'password', 'persona_type'],
+            requestId
+        );
+
+        // Check if admin user exists
+        if (userDataFromDB.error) {
             return {
                 statusCode: 401,
                 body: { 
@@ -42,8 +53,10 @@ export async function adminLogin(body) {
             }
         }
 
-        // Verify password
-        const isValidPassword = bcrypt.compareSync(password, ADMIN_CREDENTIALS.password);
+        const userData = userDataFromDB.data.user;
+
+        // Verify password against database
+        const isValidPassword = bcrypt.compareSync(password, userData.password);
         
         if (!isValidPassword) {
             return {
@@ -54,14 +67,14 @@ export async function adminLogin(body) {
             }
         }
 
-        // Generate JWT token with admin role
+        // Generate JWT token with real user data
         const token = jwt.sign(
             {
-                userId: 'admin',
-                email: email,
+                userId: userData.id,     // Real user ID from database
+                email: userData.email,
                 role: 'admin',
                 isAdmin: true,
-                persona_type: 'admin'  // Add this line
+                persona_type: 'admin'
             },
             process.env.JWT_SECRET_KEY,
             {
@@ -74,9 +87,11 @@ export async function adminLogin(body) {
             body: {
                 token,
                 user: {
-                    email: email,
+                    id: userData.id,
+                    email: userData.email,
                     role: 'admin',
-                    isAdmin: true
+                    isAdmin: true,
+                    name: userData.user_information?.name
                 },
                 message: 'Admin login successful'
             }
@@ -97,4 +112,3 @@ export async function adminLogin(body) {
         }
     }
 }
-

@@ -65,7 +65,7 @@ export async function getAllUsers(body) {
                     required: false,
                 }
             ],
-            ['id', 'email', 'persona_type', 'created_at', 'email_verified_at', 'auth_type', 'temp_id', 'consented_at'],
+            ['id', 'email', 'persona_type', 'created_at', 'email_verified_at', 'auth_type', 'temp_id', 'consented_at','verified_by_admin'],
             requestId
         );
 
@@ -82,7 +82,7 @@ export async function getAllUsers(body) {
             auth_type: user.auth_type,
             temp_id: user.temp_id,
             consented_at: user.consented_at,
-            verified_by_admin: !!user.email_verified_at, // For frontend compatibility
+            verified_by_admin: user.verified_by_admin,
             name: user.user_information?.name,
             profile_title: user.user_information?.profile_title,
             country: user.user_information?.country,

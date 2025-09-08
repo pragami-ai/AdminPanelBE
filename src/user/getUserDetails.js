@@ -2,12 +2,10 @@
 import { config } from 'dotenv';
 import { getUser } from '../user/crud.js';
 import { logger } from '../logger/logger.js';
-import { UserInformation } from '../db/pool.js';
+import { UserInformation, BookingAvailability } from '../db/pool.js';
 
 config();
 const FILE_NAME = 'admin/users/getUserDetails.js';
-
-// Fix the variable references in adminGetUserDetails function
 
 export async function adminGetUserDetails(body) {
     const targetUserId = body.targetUserId; 
@@ -29,16 +27,26 @@ export async function adminGetUserDetails(body) {
                 id: targetUserId,
                 deleted_at: null 
             },
-            [{
-                model: UserInformation,
-                as: 'user_information',
-                required: false,
-                attributes: [
-                    'name', 'linkedin', 'github', 'industry', 'country',
-                    'experience', 'avatar', 'profile_title', 'available_time_slots',
-                    'cv_url', 'age', 'description', 'gender', 'linkedin_profile_data'
-                ]
-            }],
+            [
+                {
+                    model: UserInformation,
+                    as: 'user_information',
+                    required: false,
+                    attributes: [
+                        'name', 'linkedin', 'github', 'industry', 'country',
+                        'experience', 'avatar', 'profile_title', 
+                        'cv_url', 'age', 'description', 'gender', 'linkedin_profile_data'
+                    ]
+                },
+                {
+                    model: BookingAvailability,
+                    as: 'availabilities', // FIXED: Changed from 'booking_availability' to match pool.js
+                    required: false,
+                    attributes: [
+                        'id', 'start_time', 'end_time', 'active', 'created_at', 'updated_at'
+                    ]
+                }
+            ],
             [
                 'id', 'email', 'temp_id', 'auth_type', 'persona_type',
                 'created_at', 'updated_at', 'verified_by_admin', 'email_verified_at'
@@ -57,6 +65,16 @@ export async function adminGetUserDetails(body) {
         
         const user = userResponse.data.user;
         const userInfo = user.user_information;
+        const bookingAvailability = user.availabilities; // FIXED: Changed from booking_availability to availabilities
+
+        const availableTimeSlots = bookingAvailability && bookingAvailability.length > 0 
+            ? bookingAvailability.filter(slot => slot.active).map(slot => ({
+                id: slot.id,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+                active: slot.active
+            }))
+            : [];
         
         // Build user details object
         const userDetails = {
@@ -68,7 +86,7 @@ export async function adminGetUserDetails(body) {
             persona_type: user.persona_type,
             created_at: user.created_at,
             updated_at: user.updated_at,
-            verified_by_admin: !!user.email_verified_at,
+            verified_by_admin: user.verified_by_admin,
             email_verified_at: user.email_verified_at,
             
             // Profile fields (with null fallbacks)
@@ -85,13 +103,13 @@ export async function adminGetUserDetails(body) {
             description: userInfo?.description || null,
             gender: userInfo?.gender || null,
             
-            // JSON fields (safely parsed)
-            available_time_slots: null,
+            // Booking availability (from separate table)
+            available_time_slots: availableTimeSlots,
             linkedin_profile_data: null
         };
         
         // Safely parse JSON fields
-        const jsonFields = ['available_time_slots', 'linkedin_profile_data'];
+        const jsonFields = ['linkedin_profile_data'];
         jsonFields.forEach(field => {
             const rawValue = userInfo?.[field];
             if (rawValue) {
@@ -104,7 +122,7 @@ export async function adminGetUserDetails(body) {
                 } catch (error) {
                     logger.warn(FILE_NAME, 'adminGetUserDetails', requestId, {
                         message: `Failed to parse ${field}`,
-                        targetUserId, // FIXED: Changed from userId to targetUserId
+                        targetUserId,
                         rawValue,
                         error: error.message
                     });
@@ -115,7 +133,8 @@ export async function adminGetUserDetails(body) {
         
         logger.info(FILE_NAME, 'adminGetUserDetails', requestId, {
             message: 'User details retrieved successfully',
-            targetUserId // FIXED: Changed from userId to targetUserId
+            targetUserId,
+            availableSlotsCount: availableTimeSlots.length
         });
         
         return {
@@ -131,7 +150,7 @@ export async function adminGetUserDetails(body) {
             error,
             errorMessage: error.message,
             errorStack: error.stack,
-            targetUserId // FIXED: Changed from userId to targetUserId
+            targetUserId
         });
         return {
             statusCode: 500,

@@ -95,6 +95,7 @@ import { adminGetFormResponses } from './forms/getFormResponses.js';
 import { adminDeleteForm } from './forms/deleteForm.js';
 import { adminGetUserSelections } from './booking/getUserSelections.js';
 import { adminEditBooking } from './booking/editBooking.js';
+import { getCostReport } from './cost/costTracking.js';
 
 
 
@@ -467,6 +468,10 @@ export const app = async (event, context, requestId) => {
         }
         case ADMIN_API_PATHS.EDIT_BOOKING: {
             return await adminEditBooking(body);
+        
+        }
+        case ADMIN_API_PATHS.COST_TRACKING: {
+            return await getCostReport(body);
         }
 
         
