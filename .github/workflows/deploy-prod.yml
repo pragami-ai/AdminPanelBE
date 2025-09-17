@@ -1,0 +1,47 @@
+name: Deploy to AWS Lambda (prod branch)
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Deploy with Serverless
+        env:          
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASS: ${{ vars.DB_PASS }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          JWT_SECRET_KEY: ${{ vars.JWT_SECRET_KEY }}
+          JWT_EXPIRES_IN: ${{ vars.JWT_EXPIRY }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+          ADMIN_PASSWORD_HASH: ${{ vars.ADMIN_PASSWORD_HASH }}
+          VPC_SECURITY_GROUP_ID: ${{ vars.VPC_SECURITY_GROUP_ID}}
+          VPC_SUBNET_ID_1: ${{ vars.VPC_SUBNET_ID_1}}
+          VPC_SUBNET_ID_2: ${{ vars.VPC_SUBNET_ID_2}}
+          VPC_SUBNET_ID_3: ${{ vars.VPC_SUBNET_ID_3}}
+
+        run: npm run build:prod

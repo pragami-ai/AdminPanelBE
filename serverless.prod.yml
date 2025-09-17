@@ -1,0 +1,98 @@
+service: outlaw-admin-prod
+
+frameworkVersion: '3'
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: eu-central-1
+  stage: prod
+  memorySize: 1024  # More memory for production
+  timeout: 240
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:3000
+        - https://admin.outlawlabs.co
+        - https://www.admin.outlawlabs.co
+  # Enable X-Ray tracing
+  tracing:
+    apiGateway: true
+    lambda: true
+
+  # Configure API Gateway
+  apiGateway:
+    minimumCompressionSize: 1024
+    shouldStartNameWithService: true
+    metrics: true
+
+  # Define IAM role statements
+  iam:
+    role:
+      # AWS Managed Policies - Unique list with no duplicates
+      managedPolicies:
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonChimeSDK'
+        - 'arn:aws:iam::aws:policy/AWSLambda_FullAccess'
+        - 'arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy'
+        - 'arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess'
+
+  environment:
+      NODE_ENV: production
+      DB_HOST: ${env:DB_HOST}
+      DB_PORT: ${env:DB_PORT}
+      DB_USER: ${env:DB_USER}
+      DB_PASS: ${env:DB_PASS}
+      DB_NAME: ${env:DB_NAME}
+      JWT_SECRET_KEY: ${env:JWT_SECRET_KEY}
+      JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN}
+      ADMIN_PASSWORD_HASH: ${env:ADMIN_PASSWORD_HASH}
+      ADMIN_EMAIL: ${env:ADMIN_EMAIL}
+
+functions:
+  app:
+    name: OutlawAdminBE-${self:provider.stage}   # MUST match the exact function name already created in AWS
+    handler: index.handler
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: POST
+
+    vpc:
+      securityGroupIds:
+        - ${env:VPC_SECURITY_GROUP_ID}
+      subnetIds:
+        - ${env:VPC_SUBNET_ID_1}
+        - ${env:VPC_SUBNET_ID_2}
+        - ${env:VPC_SUBNET_ID_3}
+
+package:
+  individually: true
+  patterns:
+    - "!.git/**"
+    - "!.serverless/**"
+    - "!README.md"
+    - "!package-lock.json"
+    - "!.env*"
+    - "!.vscode/**"
+    - "!local-server.js"
+    - "!node_modules/.cache/**"
+    - "!test/**"
+    - "!.github/**"
+    - "src/**"
+    - "package.json"
+    - "index.js"
+
+
+custom:
+  logRetentionInDays: 30
+
+  # Enable warmup to prevent cold starts
+  warmup:
+    enabled: true
+    events:
+      - schedule: rate(5 minutes)
+    concurrency: 2  # More concurrent warmups for production
