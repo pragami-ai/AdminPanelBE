@@ -1,4 +1,4 @@
-.githubservice: outlaw-admin-dev
+service: outlaw-admin-dev
 
 frameworkVersion: '3'
 
