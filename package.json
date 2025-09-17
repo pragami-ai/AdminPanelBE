@@ -7,6 +7,7 @@
     "local-server": "nodemon local-server.js",
     "start": "node local-server.js",
     "build": "npx serverless deploy function --function app",
+    "build:dev": "npx serverless deploy --config serverless.dev.yml",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
