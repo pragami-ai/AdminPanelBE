@@ -55,5 +55,36 @@ export const bookingsSchema = {
     updated_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    idea_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: TABLE_NAMES.ideas,
+            key: 'id'
+        }
+    },
+    ai_digest: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    // New fields for cancellation tracking
+    is_cancel: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    cancel_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: TABLE_NAMES.users,
+            key: 'id'
+        }
+    },
+    cancel_reason: {
+        type: DataTypes.TEXT,
+        allowNull: true
     }
 }

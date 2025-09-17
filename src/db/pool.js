@@ -349,6 +349,16 @@ BookingAvailability.belongsTo(User, {
     foreignKey: 'user_id',
     as: 'user'
 });
+// Add these after the existing Booking associations
+Booking.belongsTo(Idea, {
+    foreignKey: 'idea_id',
+    as: 'idea'
+});
+
+Idea.hasMany(Booking, {
+    foreignKey: 'idea_id',
+    as: 'bookings'
+});
 
 export let cache = null;
 

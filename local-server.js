@@ -485,6 +485,28 @@ expressApp.post(ADMIN_API_PATHS.COST_TRACKING, async (req, res) => {
     res.status(result.statusCode || 200).json(result);
 });
 
+expressApp.post(ADMIN_API_PATHS.TRANSCRIPT, async (req, res) => {
+  console.log('🔍 Transcript Summary route hit');
+  console.log('📄 Request body:', req.body);
+  
+  try {
+    const result = await lambdaHandler({
+      body: JSON.stringify(req.body),
+      rawPath: ADMIN_API_PATHS.TRANSCRIPT,
+      headers: req.headers,
+      httpMethod: 'POST'
+    });
+    
+    res.status(result.statusCode || 200).json(result);
+  } catch (error) {
+    console.error('❌ Transcript route error:', error);
+    res.status(500).json({
+      statusCode: 500,
+      body: { message: 'Internal server error in transcript route' }
+    });
+  }
+});
+
 
 const PORT = process.env.PORT || 3001;
 expressApp.listen(PORT, () => {

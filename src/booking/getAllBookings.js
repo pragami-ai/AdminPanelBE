@@ -3,7 +3,7 @@ import { Op } from "sequelize";
 import { config } from 'dotenv';
 import { getBookings } from '../booking/crud.js';
 import { logger } from '../logger/logger.js';
-import { User, UserInformation } from '../db/pool.js';
+import { User, UserInformation, Idea } from '../db/pool.js';
 import { BOOKING_STATUSES, BOOKING_FILTERS } from '../helper/constants.js';
 
 config();
@@ -68,7 +68,7 @@ export async function adminGetAllBookings(body) {
         
         console.log('Using where clause:', JSON.stringify(whereClause, null, 2));
         
-        // Get bookings with filters and joins
+        // Get bookings with filters and joins (ENHANCED with Ideas table)
         const bookingDetailsFromDB = await getBookings(
             whereClause,
             null, // Get all fields
@@ -93,6 +93,13 @@ export async function adminGetAllBookings(body) {
                         as: 'user_information',
                         attributes: ['name', 'avatar', 'profile_title', 'country', 'description']
                     }]
+                },
+                // ENHANCED: Add Ideas join
+                {
+                    model: Idea,
+                    as: 'idea',
+                    attributes: ['id', 'name', 'description', 'targeted_audience', 'stage'],
+                    required: false // Left join in case some bookings don't have ideas
                 }
             ],
             {
@@ -120,7 +127,7 @@ export async function adminGetAllBookings(body) {
 
         const bookings = bookingDetailsFromDB.data.bookings;
         
-        // Format bookings for admin view
+        // Format bookings for admin view (ENHANCED)
         const formattedBookings = bookings.map((data) => {
             const creatorInfo = data.creator?.user_information;
             const participantInfo = data.participant?.user_information;
@@ -138,6 +145,10 @@ export async function adminGetAllBookings(body) {
                 timeCategory = 'past';
             }
             
+            // ENHANCED: Meeting status based on fields
+            const hasMeetingTakenPlace = !!data.virtual_conference_id;
+            const hasTranscriptGenerated = !!data.ai_digest;
+            
             return {
                 id: data.id,
                 status: data.status,
@@ -147,6 +158,26 @@ export async function adminGetAllBookings(body) {
                 createdAt: data.created_at,
                 updatedAt: data.updated_at,
                 virtualConferenceId: data.virtual_conference_id,
+                
+                // ENHANCED: New fields
+                ideaId: data.idea_id,
+                ideaDetails: data.idea ? {
+                    id: data.idea.id,
+                    name: data.idea.name,
+                    description: data.idea.description,
+                    targetedAudience: data.idea.targeted_audience,
+                    stage: data.idea.stage
+                } : null,
+                
+                // ENHANCED: Cancellation fields
+                isCancelled: data.is_cancel === true || data.is_cancel === 1 || data.cancel_by !== null,
+                cancelledBy: data.cancel_by || null,
+                cancellationReason: data.cancel_reason || null,
+                
+                // ENHANCED: AI/Transcript fields
+                aiDigest: !!data.ai_digest,
+                hasTranscriptGenerated,
+                hasMeetingTakenPlace,
                 
                 // Creator details
                 creator: {
@@ -181,11 +212,14 @@ export async function adminGetAllBookings(body) {
                 
                 // Chime meeting info (if exists)
                 meetingId: data.chime_meeting_response?.meetingResponse?.Meeting?.MeetingId || null,
-                attendeeCount: data.chime_meeting_response?.attendeeResponses?.length || 0
+                attendeeCount: data.chime_meeting_response?.attendeeResponses?.length || 0,
+                
+                // ENHANCED: Meeting summary composite key for DynamoDB lookup
+                meetingCompositeKey: data.participant?.id ? `USER${data.participant.id}#MEETING${data.id}` : null
             };
         });
         
-        // Generate summary stats
+        // Generate summary stats (ENHANCED)
         const allStatuses = [...new Set(bookings.map(b => b.status))]; // Get unique statuses from DB
         const statusCounts = {};
         allStatuses.forEach(status => {
@@ -199,12 +233,21 @@ export async function adminGetAllBookings(body) {
             total: formattedBookings.length
         };
         
+        // ENHANCED: Additional stats
+        const meetingStats = {
+            meetingsTakenPlace: formattedBookings.filter(b => b.hasMeetingTakenPlace).length,
+            transcriptsGenerated: formattedBookings.filter(b => b.hasTranscriptGenerated).length,
+            cancelledBookings: formattedBookings.filter(b => b.isCancelled).length,
+            withIdeas: formattedBookings.filter(b => b.ideaId).length
+        };
+        
         logger.info(FILE_NAME, 'adminGetAllBookings', requestId, {
             message: 'Admin successfully retrieved bookings',
             totalBookings: bookings.length,
             appliedFilters: { timeFilter: timeFilter || 'all', statusFilter: statusFilter || 'all' },
             statusCounts,
-            timeCounts
+            timeCounts,
+            meetingStats // ENHANCED
         });
         
         return {
@@ -223,6 +266,7 @@ export async function adminGetAllBookings(body) {
                 // Summary statistics
                 statusCounts,
                 timeCounts,
+                meetingStats, // ENHANCED
                 
                 // Available filter options
                 availableFilters: {
