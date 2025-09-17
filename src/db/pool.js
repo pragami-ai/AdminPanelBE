@@ -23,27 +23,22 @@ import { bookingAvailabilitySchema } from './models/booking_availability.js';
 config();
 
 // Environment-based SSL configuration
-const dialectOptions = process.env.NODE_ENV === 'production' 
-  ? {
-      ssl: {
-        require: true,
-        ca: fs.readFileSync(path.join(__dirname, 'cert', 'ap-south-1.bundle.pem'), 'utf8'),
-      },
-      statement_timeout: 10_000,
-    }
-  : {
-      ssl: false, // Disable SSL for local development
-      statement_timeout: 10_000,
-    };
-
+// Environment-based SSL configuration
 const sequelize = new Sequelize({
     dialect: 'postgres',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    dialectOptions,
+    dialectOptions: {
+        ssl: {
+            require: false,
+            rejectUnauthorized: false,
+            ca: fs.readFileSync(path.join(__dirname, 'cert', `${process.env.AWS_REGION}.bundle.pem`), 'utf8'),
+        },
+        statement_timeout: 10_000,
+    },
     pool: {
         max: 2,
         min: 0,
