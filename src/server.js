@@ -66,7 +66,6 @@ import {adminEditUser } from './user/editUser.js';
 
 import { adminGetAllBookings } from './booking/getAllBookings.js';
 import { createBookingAdmin } from './booking/create-booking.js';
-import {getAvailableSlots} from './booking/getAvailableSlots.js';
 import { updateBookingAPI } from './booking/update.js';
 import {createMeeting} from './booking/create-meeting.js';
 import { myIdea } from './idea/myIdea.js';   
