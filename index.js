@@ -14,7 +14,7 @@ export const handler = async (event, context) => {
     console.log('- event.body:', event.body);
     console.log('- event.pathParameters:', event.pathParameters);
     console.log('- event.headers:', JSON.stringify(event.headers, null, 2));
-
+    console.log("HELLO WORLD")
     try {
         // Transform API Gateway event to your expected format
         const transformedEvent = {
