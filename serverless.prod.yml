@@ -17,6 +17,8 @@ provider:
         - http://localhost:3000
         - https://admin.outlawlabs.co
         - https://www.admin.outlawlabs.co
+        - https://prod.d2qpn3cyqv86tc.amplifyapp.com
+        - https://www.prod.d2qpn3cyqv86tc.amplifyapp.com
   # Enable X-Ray tracing
   tracing:
     apiGateway: true
